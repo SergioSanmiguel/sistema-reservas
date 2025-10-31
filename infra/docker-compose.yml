@@ -1,0 +1,16 @@
+﻿version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: reserva
+      POSTGRES_PASSWORD: reserva_pass
+      POSTGRES_DB: reservasdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

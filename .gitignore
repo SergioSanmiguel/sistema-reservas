@@ -1,0 +1,23 @@
+﻿# .NET / Visual Studio
+**/bin/
+**/obj/
+*.user
+*.vs/
+.vscode/
+
+# Node
+node_modules/
+dist/
+npm-debug.log
+package-lock.json
+
+# Logs
+logs/
+*.log
+
+# Docker
+**/docker-compose.override.yml
+
+# Secrets
+.env
+secrets.*.json
