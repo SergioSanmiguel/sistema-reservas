@@ -1,16 +1,23 @@
-﻿version: '3.8'
+version: "3.9"
 
 services:
   postgres:
     image: postgres:15
+    container_name: reservas_postgres
     environment:
       POSTGRES_USER: reserva
-      POSTGRES_PASSWORD: reserva_pass
+      POSTGRES_PASSWORD: reserva123
       POSTGRES_DB: reservasdb
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reserva"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  pgdata:
+  postgres_data:
+
