@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+  #  Base de datos PostgreSQL
   postgres:
     image: postgres:15
     container_name: reservas_postgres
@@ -18,7 +19,39 @@ services:
       timeout: 5s
       retries: 5
 
+  #  Backend .NET API
+  backend:
+    build:
+      context: ../reservas-backend
+      dockerfile: Dockerfile
+    container_name: reservas_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Default=Host=postgres;Database=reservasdb;Username=reserva;Password=reserva123
+      - Jwt__Key=ClaveSuperSecreta123
+      - Jwt__Issuer=reservas.api
+      - Jwt__Audience=reservas.frontend
+    ports:
+      - "5000:80"
+    restart: unless-stopped
+
+  #  Frontend Angular
+  frontend:
+    build:
+      context: ../reservas-frontend
+      dockerfile: Dockerfile
+    container_name: reservas_frontend
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+
 
 
