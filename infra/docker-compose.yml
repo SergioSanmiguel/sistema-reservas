@@ -1,4 +1,4 @@
-version: "3.9"
+﻿version: "3.9"
 
 services:
   #  Base de datos PostgreSQL
@@ -22,8 +22,8 @@ services:
   #  Backend .NET API
   backend:
     build:
-      context: ../reservas-backend
-      dockerfile: Dockerfile
+      context: ../backend
+      dockerfile: src/Reserva.Api/Dockerfile
     container_name: reservas_backend
     depends_on:
       postgres:
@@ -35,13 +35,13 @@ services:
       - Jwt__Issuer=reservas.api
       - Jwt__Audience=reservas.frontend
     ports:
-      - "5000:80"
+      - "5290:8080"
     restart: unless-stopped
 
-  #  Frontend Angular
+  #  Frontend Angular (Nginx)
   frontend:
     build:
-      context: ../reservas-frontend
+      context: ../frontend/webapp
       dockerfile: Dockerfile
     container_name: reservas_frontend
     depends_on:
@@ -52,6 +52,8 @@ services:
 
 volumes:
   postgres_data:
+
+
 
 
 
