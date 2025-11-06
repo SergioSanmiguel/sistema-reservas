@@ -1,21 +1,21 @@
-# Etapa de compilación
+# Etapa 1: build
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copiar archivo de proyecto y restaurar dependencias
-COPY ["src/Reserva.Api/Reserva.Api.csproj", "Reserva.Api/"]
-RUN dotnet restore "Reserva.Api/Reserva.Api.csproj"
+COPY ["Reserva.Api.csproj", "./"]
+RUN dotnet restore "Reserva.Api.csproj"
 
-# Copiar todo el código fuente
+# Copiar el resto del código fuente
 COPY . .
-WORKDIR "/src/Reserva.Api"
 RUN dotnet publish "Reserva.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# Etapa final: imagen de runtime
+# Etapa 2: runtime
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Reserva.Api.dll"]
+
 
 

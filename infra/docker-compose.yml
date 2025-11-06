@@ -22,8 +22,8 @@ services:
   #  Backend .NET API
   backend:
     build:
-      context: ../backend
-      dockerfile: src/Reserva.Api/Dockerfile
+      context: ../backend/src/Reserva.Api
+      dockerfile: Dockerfile
     container_name: reservas_backend
     depends_on:
       postgres:
@@ -31,9 +31,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__Default=Host=postgres;Database=reservasdb;Username=reserva;Password=reserva123
-      - Jwt__Key=ClaveSuperSecreta123
+      - Jwt__Key=- Jwt__Key=Clave_super_secreta_de_Sergio_2025_con_mas_bits!!!
       - Jwt__Issuer=reservas.api
       - Jwt__Audience=reservas.frontend
+      - Jwt__ExpireMinutes=60
     ports:
       - "5290:8080"
     restart: unless-stopped

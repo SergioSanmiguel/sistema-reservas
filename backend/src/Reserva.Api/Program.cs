@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Reserva.Api.Data;
 using Reserva.Api.Models;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,9 +13,47 @@ var connectionString = builder.Configuration.GetConnectionString("PostgresConnec
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Swagger
+// Swagger con soporte para JWT
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Reserva API",
+        Version = "v1"
+    });
+
+    // 🔐 Configuración JWT para Swagger UI
+    var securityScheme = new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Ingrese 'Bearer' [espacio] y luego su token JWT.\n\nEjemplo: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'"
+    };
+
+    options.AddSecurityDefinition("Bearer", securityScheme);
+
+    var securityRequirement = new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    };
+
+    options.AddSecurityRequirement(securityRequirement);
+});
+
 
 // CORS
 builder.Services.AddCors(options =>
@@ -49,6 +88,7 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
     };
 });
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -64,10 +104,9 @@ app.UseAuthorization();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "Healthy" }));
 
-// Map controllers (we will use minimal endpoints for auth and keep controllers for reservations optional)
+// Auth endpoints
 app.MapPost("/api/auth/register", async (UserRegisterDto dto, AppDbContext db) =>
 {
-    // verificar email único
     if (await db.Usuarios.AnyAsync(u => u.Email == dto.Email))
         return Results.Conflict(new { message = "Email already registered." });
 
@@ -84,13 +123,12 @@ app.MapPost("/api/auth/login", async (UserLoginDto dto, AppDbContext db) =>
     if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
         return Results.Unauthorized();
 
-    // generar token
     var jwt = builder.Configuration.GetSection("Jwt");
     var key = Encoding.UTF8.GetBytes(jwt.GetValue<string>("Key")!);
     var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
     var tokenDescriptor = new SecurityTokenDescriptor
     {
-        Subject = new System.Security.Claims.ClaimsIdentity(new []
+        Subject = new System.Security.Claims.ClaimsIdentity(new[]
         {
             new System.Security.Claims.Claim("id", user.Id.ToString()),
             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, user.Email),
@@ -108,6 +146,7 @@ app.MapPost("/api/auth/login", async (UserLoginDto dto, AppDbContext db) =>
     return Results.Ok(new { token = tokenString });
 });
 
+// Reservas (protegidos)
 app.MapGet("/api/reservas", async (AppDbContext db) =>
     await db.Reservas.ToListAsync());
 
@@ -122,7 +161,7 @@ app.MapPost("/api/reservas", async (ReservaEntity reserva, AppDbContext db) =>
     db.Reservas.Add(reserva);
     await db.SaveChangesAsync();
     return Results.Created($"/api/reservas/{reserva.Id}", reserva);
-}).RequireAuthorization(); // proteger creación si quieres
+}).RequireAuthorization();
 
 app.MapDelete("/api/reservas/{id:int}", async (int id, AppDbContext db) =>
 {
@@ -135,8 +174,7 @@ app.MapDelete("/api/reservas/{id:int}", async (int id, AppDbContext db) =>
 
 app.Run();
 
-
-// DTOs al final del archivo para simplicidad
+// DTOs
 public record UserRegisterDto(string Email, string Password);
 public record UserLoginDto(string Email, string Password);
 
