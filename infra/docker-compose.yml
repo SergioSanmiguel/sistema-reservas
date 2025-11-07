@@ -1,7 +1,7 @@
 ﻿version: "3.9"
 
 services:
-  #  Base de datos PostgreSQL
+  # 🗄️ Base de datos PostgreSQL
   postgres:
     image: postgres:15
     container_name: reservas_postgres
@@ -14,16 +14,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U reserva"]
+      test: ["CMD-SHELL", "pg_isready -U reserva -d reservasdb"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  #  Backend .NET API
+  # ⚙️ Backend .NET API
   backend:
     build:
-      context: ../backend/src/Reserva.Api
-      dockerfile: Dockerfile
+      context: ../backend/src
+      dockerfile: Reserva.Api/Dockerfile
     container_name: reservas_backend
     depends_on:
       postgres:
@@ -38,8 +38,17 @@ services:
     ports:
       - "5290:8080"
     restart: unless-stopped
+    command: >
+      bash -c "
+        echo '⏳ Esperando a que Postgres esté listo...' &&
+        until pg_isready -h postgres -U reserva -d reservasdb; do sleep 2; done &&
+        echo '✅ Base de datos lista. Aplicando migraciones...' &&
+        dotnet ef database update --project Reserva.Api &&
+        echo '🚀 Iniciando API...' &&
+        dotnet Reserva.Api.dll
+      "
 
-  #  Frontend Angular (Nginx)
+  # 🌐 Frontend Angular (Nginx)
   frontend:
     build:
       context: ../frontend/webapp
@@ -51,10 +60,27 @@ services:
       - "4200:80"
     restart: unless-stopped
 
+  # 📦 Contenedor para migraciones independientes
+  migrations:
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    container_name: reservas_migrations
+    depends_on:
+      - postgres
+    environment:
+      - ConnectionStrings__PostgresConnection=Host=postgres;Database=reservasdb;Username=reserva;Password=reserva123
+    volumes:
+      - ../backend/src:/src
+    working_dir: /src/Reserva.Api
+    entrypoint: >
+      bash -c "
+        echo '⏳ Esperando a que Postgres esté listo...' &&
+        until pg_isready -h postgres -U reserva -d reservasdb; do sleep 2; done &&
+        echo '✅ Base de datos lista. Ejecutando migraciones...' &&
+        dotnet tool install --global dotnet-ef &&
+        export PATH=\"$PATH:/root/.dotnet/tools\" &&
+        dotnet ef database update
+      "
+
 volumes:
   postgres_data:
-
-
-
-
 
