@@ -2,21 +2,18 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Reserva.Api.Data;
+using Reserva.Infrastructure.Data;
 
 #nullable disable
 
-namespace Reserva.Api.Migrations
+namespace Reserva.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251106080954_AddUsuarios")]
-    partial class AddUsuarios
+    partial class AppDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -25,7 +22,7 @@ namespace Reserva.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Reserva.Api.Models.ReservaEntity", b =>
+            modelBuilder.Entity("Reserva.Core.Models.Espacio", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -33,9 +30,32 @@ namespace Reserva.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Espacio")
+                    b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("Disponible")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Espacios");
+                });
+
+            modelBuilder.Entity("Reserva.Core.Models.ReservaEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EspacioId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Estado")
                         .IsRequired()
@@ -47,16 +67,19 @@ namespace Reserva.Api.Migrations
                     b.Property<DateTime>("FechaInicio")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Usuario")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EspacioId");
+
+                    b.HasIndex("UsuarioId");
 
                     b.ToTable("Reservas");
                 });
 
-            modelBuilder.Entity("Reserva.Api.Models.Usuario", b =>
+            modelBuilder.Entity("Reserva.Core.Models.Usuario", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -79,6 +102,25 @@ namespace Reserva.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Usuarios");
+                });
+
+            modelBuilder.Entity("Reserva.Core.Models.ReservaEntity", b =>
+                {
+                    b.HasOne("Reserva.Core.Models.Espacio", "Espacio")
+                        .WithMany()
+                        .HasForeignKey("EspacioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Reserva.Core.Models.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Espacio");
+
+                    b.Navigation("Usuario");
                 });
 #pragma warning restore 612, 618
         }
