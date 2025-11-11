@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Reserva.Api.Models
+namespace Reserva.Core.Models
 {
     public class Usuario
     {

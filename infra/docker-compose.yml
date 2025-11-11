@@ -1,7 +1,4 @@
-﻿version: "3.9"
-
-services:
-  # 🗄️ Base de datos PostgreSQL
+﻿services:
   postgres:
     image: postgres:15
     container_name: reservas_postgres
@@ -19,7 +16,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ⚙️ Backend .NET API
   backend:
     build:
       context: ../backend/src
@@ -29,58 +25,14 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__PostgresConnection=Host=postgres;Database=reservasdb;Username=reserva;Password=reserva123
-      - Jwt__Key=Clave_super_secreta_de_Sergio_2025_con_mas_bits!!!
-      - Jwt__Issuer=reservas.api
-      - Jwt__Audience=reservas.frontend
-      - Jwt__ExpireMinutes=60
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__PostgresConnection: Host=postgres;Port=5432;Database=reservasdb;Username=reserva;Password=reserva123
     ports:
       - "5290:8080"
     restart: unless-stopped
-    command: >
-      bash -c "
-        echo '⏳ Esperando a que Postgres esté listo...' &&
-        until pg_isready -h postgres -U reserva -d reservasdb; do sleep 2; done &&
-        echo '✅ Base de datos lista. Aplicando migraciones...' &&
-        dotnet ef database update --project Reserva.Api &&
-        echo '🚀 Iniciando API...' &&
-        dotnet Reserva.Api.dll
-      "
-
-  # 🌐 Frontend Angular (Nginx)
-  frontend:
-    build:
-      context: ../frontend/webapp
-      dockerfile: Dockerfile
-    container_name: reservas_frontend
-    depends_on:
-      - backend
-    ports:
-      - "4200:80"
-    restart: unless-stopped
-
-  # 📦 Contenedor para migraciones independientes
-  migrations:
-    image: mcr.microsoft.com/dotnet/sdk:9.0
-    container_name: reservas_migrations
-    depends_on:
-      - postgres
-    environment:
-      - ConnectionStrings__PostgresConnection=Host=postgres;Database=reservasdb;Username=reserva;Password=reserva123
-    volumes:
-      - ../backend/src:/src
-    working_dir: /src/Reserva.Api
-    entrypoint: >
-      bash -c "
-        echo '⏳ Esperando a que Postgres esté listo...' &&
-        until pg_isready -h postgres -U reserva -d reservasdb; do sleep 2; done &&
-        echo '✅ Base de datos lista. Ejecutando migraciones...' &&
-        dotnet tool install --global dotnet-ef &&
-        export PATH=\"$PATH:/root/.dotnet/tools\" &&
-        dotnet ef database update
-      "
 
 volumes:
   postgres_data:
+
+
 
