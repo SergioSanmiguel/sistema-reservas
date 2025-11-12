@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Reserva.Core.Models;
 using Reserva.Infrastructure.Data;
 using Reserva.Infrastructure.Kafka;
+using System.Security.Claims;
 
 namespace Reserva.Api.Controllers
 {
@@ -25,7 +26,11 @@ namespace Reserva.Api.Controllers
         [Authorize(Roles = "Usuario,Admin")]
         public async Task<IActionResult> GetAll()
         {
-            var reservas = await _db.Reservas.ToListAsync();
+            var reservas = await _db.Reservas
+                .Include(r => r.Espacio)
+                .Include(r => r.Usuario)
+                .ToListAsync();
+
             return Ok(reservas);
         }
 
@@ -34,8 +39,14 @@ namespace Reserva.Api.Controllers
         [Authorize(Roles = "Usuario,Admin")]
         public async Task<IActionResult> GetById(int id)
         {
-            var reserva = await _db.Reservas.FindAsync(id);
-            if (reserva == null) return NotFound();
+            var reserva = await _db.Reservas
+                .Include(r => r.Espacio)
+                .Include(r => r.Usuario)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (reserva == null)
+                return NotFound();
+
             return Ok(reserva);
         }
 
@@ -44,10 +55,20 @@ namespace Reserva.Api.Controllers
         [Authorize(Roles = "Usuario,Admin")]
         public async Task<IActionResult> Create([FromBody] ReservaEntity reserva)
         {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            reserva.IdUsuario = userId;
+
+            var solapada = await _db.Reservas.AnyAsync(r =>
+                r.IdEspacio == reserva.IdEspacio &&
+                ((reserva.FechaInicio >= r.FechaInicio && reserva.FechaInicio < r.FechaFin) ||
+                 (reserva.FechaFin > r.FechaInicio && reserva.FechaFin <= r.FechaFin)));
+
+            if (solapada)
+                return BadRequest(new { message = "El espacio ya está reservado en ese horario." });
+
             _db.Reservas.Add(reserva);
             await _db.SaveChangesAsync();
 
-            // Publicamos evento en Kafka
             await _producer.PublicarReservaCreadaAsync(reserva);
 
             return CreatedAtAction(nameof(GetById), new { id = reserva.Id }, reserva);
@@ -59,7 +80,8 @@ namespace Reserva.Api.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var reserva = await _db.Reservas.FindAsync(id);
-            if (reserva == null) return NotFound();
+            if (reserva == null)
+                return NotFound();
 
             _db.Reservas.Remove(reserva);
             await _db.SaveChangesAsync();
@@ -68,3 +90,4 @@ namespace Reserva.Api.Controllers
         }
     }
 }
+
