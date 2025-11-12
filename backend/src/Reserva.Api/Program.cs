@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Reserva.Infrastructure.Data;
+using Reserva.Infrastructure.Kafka;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +18,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection.GetValue<string>("Key")!;
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
+// Kafka Dummy Producer
+builder.Services.AddSingleton<IKafkaProducer, DummyKafkaProducer>();
 
 builder.Services.AddAuthentication(options =>
 {
