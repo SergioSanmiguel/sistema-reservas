@@ -18,8 +18,8 @@ namespace Reserva.Infrastructure.Kafka
             _logger.LogInformation(
                 "[KafkaDummy] Evento publicado -> Reserva ID: {Id}, Usuario: {UsuarioId}, Espacio: {EspacioId}, Inicio: {Inicio}, Fin: {Fin}",
                 reserva.Id,
-                reserva.IdUsuario,
-                reserva.IdEspacio,
+                reserva.UsuarioId,
+                reserva.EspacioId,
                 reserva.FechaInicio,
                 reserva.FechaFin
             );
