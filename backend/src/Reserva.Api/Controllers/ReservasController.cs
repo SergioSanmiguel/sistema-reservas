@@ -55,11 +55,13 @@ namespace Reserva.Api.Controllers
         [Authorize(Roles = "Usuario,Admin")]
         public async Task<IActionResult> Create([FromBody] ReservaEntity reserva)
         {
+            // Obtener ID del usuario autenticado
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            reserva.IdUsuario = userId;
+            reserva.UsuarioId = userId;
 
+            // Validar solapamiento de reservas
             var solapada = await _db.Reservas.AnyAsync(r =>
-                r.IdEspacio == reserva.IdEspacio &&
+                r.EspacioId == reserva.EspacioId &&
                 ((reserva.FechaInicio >= r.FechaInicio && reserva.FechaInicio < r.FechaFin) ||
                  (reserva.FechaFin > r.FechaInicio && reserva.FechaFin <= r.FechaFin)));
 
@@ -69,6 +71,7 @@ namespace Reserva.Api.Controllers
             _db.Reservas.Add(reserva);
             await _db.SaveChangesAsync();
 
+            // Publicar evento en Kafka (dummy o real)
             await _producer.PublicarReservaCreadaAsync(reserva);
 
             return CreatedAtAction(nameof(GetById), new { id = reserva.Id }, reserva);
@@ -90,4 +93,5 @@ namespace Reserva.Api.Controllers
         }
     }
 }
+
 
