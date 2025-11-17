@@ -6,11 +6,11 @@ namespace Reserva.Api.DTOs
     {
         [Required(ErrorMessage = "El email es obligatorio")]
         [EmailAddress(ErrorMessage = "Email inválido")]
-        public string Email { get; set; }
+        public required string Email { get; set; }
 
         [Required(ErrorMessage = "La contraseña es obligatoria")]
         [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
-        public string Password { get; set; }
+        public required string Password { get; set; }
 
         [Required]
         [RegularExpression("^(usuario|admin)$", ErrorMessage = "Rol inválido")]
