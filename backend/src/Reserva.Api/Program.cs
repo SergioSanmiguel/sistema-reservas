@@ -6,13 +6,7 @@ using Microsoft.OpenApi.Models;
 using Reserva.Infrastructure.Data;
 using Reserva.Infrastructure.Kafka;
 
-
 var builder = WebApplication.CreateBuilder(args);
-
-//  Configuración DB
-var connectionString = builder.Configuration.GetConnectionString("PostgresConnection");
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
 
 // JWT
 var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -22,6 +16,7 @@ var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 // Kafka Dummy Producer
 builder.Services.AddSingleton<IKafkaProducer, DummyKafkaProducer>();
 
+// Configuración Authentication/Authorization
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -56,7 +51,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Reserva API", Version = "v1" });
-
     var securityScheme = new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -82,11 +76,26 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod());
 });
 
+// --- CONFIGURACIÓN DE DB ---
+// Si estamos en testing usamos InMemory, si no PostgreSQL
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseInMemoryDatabase("TestDb"));
+}
+else
+{
+    var connectionString = builder.Configuration.GetConnectionString("PostgresConnection");
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
+
 var app = builder.Build();
 
-// Migraciones automáticas
-using (var scope = app.Services.CreateScope())
+// Migraciones automáticas solo en entornos reales
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 }
@@ -106,5 +115,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-public partial class Program { }
 
+public partial class Program { }
