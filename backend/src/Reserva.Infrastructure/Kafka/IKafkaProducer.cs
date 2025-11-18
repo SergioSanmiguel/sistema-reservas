@@ -4,5 +4,5 @@ namespace Reserva.Infrastructure.Kafka;
 
 public interface IKafkaProducer
 {
-    Task PublicarReservaCreadaAsync(ReservaEntity reserva);
+    Task ProduceAsync(string key, string value);
 }

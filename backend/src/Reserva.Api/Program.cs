@@ -13,8 +13,13 @@ var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection.GetValue<string>("Key")!;
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
-// Kafka Dummy Producer
-builder.Services.AddSingleton<IKafkaProducer, DummyKafkaProducer>();
+// Kafka Producer real
+builder.Services.AddSingleton<IKafkaProducer, KafkaProducer>();
+
+// Kafka Consumer en segundo plano
+builder.Services.AddHostedService<KafkaConsumerService>();
+
+builder.Services.AddSingleton<IReservaEventPublisher, ReservaEventPublisher>();
 
 // Configuración Authentication/Authorization
 builder.Services.AddAuthentication(options =>
