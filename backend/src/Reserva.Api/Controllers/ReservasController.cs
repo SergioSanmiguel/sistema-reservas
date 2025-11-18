@@ -13,12 +13,12 @@ namespace Reserva.Api.Controllers
     public class ReservasController : ControllerBase
     {
         private readonly AppDbContext _db;
-        private readonly IKafkaProducer _producer;
+        private readonly IReservaEventPublisher _publisher;
 
-        public ReservasController(AppDbContext db, IKafkaProducer producer)
+        public ReservasController(AppDbContext db, IReservaEventPublisher publisher)
         {
             _db = db;
-            _producer = producer;
+            _publisher = publisher;
         }
 
         // GET: api/reservas
@@ -71,8 +71,8 @@ namespace Reserva.Api.Controllers
             _db.Reservas.Add(reserva);
             await _db.SaveChangesAsync();
 
-            // Publicar evento en Kafka (dummy o real)
-            await _producer.PublicarReservaCreadaAsync(reserva);
+            // Publicar evento en Kafka mediante EventPublisher
+            await _publisher.PublicarReservaCreadaAsync(reserva);
 
             return CreatedAtAction(nameof(GetById), new { id = reserva.Id }, reserva);
         }
@@ -93,5 +93,6 @@ namespace Reserva.Api.Controllers
         }
     }
 }
+
 
 

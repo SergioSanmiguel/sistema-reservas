@@ -1,23 +1,54 @@
 using Confluent.Kafka;
-using System.Text.Json;
-using Reserva.Core.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Reserva.Infrastructure.Kafka;
 
 public class KafkaProducer : IKafkaProducer
 {
-    private readonly IProducer<Null, string> _producer;
-    private readonly string _topic = "reservas-topic";
+    private readonly IProducer<string, string> _producer;
+    private readonly string _topic;
+    private readonly ILogger<KafkaProducer> _logger;
 
-    public KafkaProducer(string bootstrapServers)
+    public KafkaProducer(IConfiguration config, ILogger<KafkaProducer> logger)
     {
-        var config = new ProducerConfig { BootstrapServers = bootstrapServers };
-        _producer = new ProducerBuilder<Null, string>(config).Build();
+        _logger = logger;
+
+        var bootstrap = config["Kafka:BootstrapServers"]
+            ?? throw new Exception("Kafka:BootstrapServers no configurado");
+
+        _topic = config["Kafka:TopicReservas"]
+            ?? throw new Exception("Kafka:TopicReservas no configurado");
+
+        var producerConfig = new ProducerConfig
+        {
+            BootstrapServers = bootstrap
+        };
+
+        _producer = new ProducerBuilder<string, string>(producerConfig).Build();
     }
 
-    public async Task PublicarReservaCreadaAsync(ReservaEntity reserva)
+    public async Task ProduceAsync(string key, string value)
     {
-        var json = JsonSerializer.Serialize(reserva);
-        await _producer.ProduceAsync(_topic, new Message<Null, string> { Value = json });
+        try
+        {
+            var msg = new Message<string, string>
+            {
+                Key = key,
+                Value = value
+            };
+
+            var result = await _producer.ProduceAsync(_topic, msg);
+            _logger.LogInformation(
+                "Mensaje enviado a {Topic} partition {Partition}, offset {Offset}",
+                result.Topic, result.Partition, result.Offset
+            );
+        }
+        catch (ProduceException<string, string> ex)
+        {
+            _logger.LogError(ex, "Error enviando mensaje a Kafka");
+            throw;
+        }
     }
 }
+
