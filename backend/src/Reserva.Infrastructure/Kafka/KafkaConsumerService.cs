@@ -2,79 +2,113 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
-namespace Reserva.Infrastructure.Kafka;
-
-public class KafkaConsumerService : BackgroundService
+namespace Reserva.Infrastructure.Kafka
 {
-    private readonly ILogger<KafkaConsumerService> _logger;
-    private readonly IConfiguration _config;
-    private IConsumer<string, string> _consumer;
-    private readonly string _topic;
-
-    public KafkaConsumerService(ILogger<KafkaConsumerService> logger, IConfiguration config)
+    public class KafkaConsumerService : BackgroundService
     {
-        _logger = logger;
-        _config = config;
+        private readonly ILogger<KafkaConsumerService> _logger;
+        private readonly IConfiguration _config;
+        private readonly IConsumer<string, string> _consumer;
+        private readonly string _topicFinalizacion;
 
-        var bootstrap = _config["Kafka:BootstrapServers"]
-            ?? throw new Exception("Kafka:BootstrapServers no configurado");
-
-        var groupId = _config["Kafka:GroupId"]
-            ?? throw new Exception("Kafka:GroupId no configurado");
-
-        _topic = _config["Kafka:TopicReservas"]
-            ?? throw new Exception("Kafka:TopicReservas no configurado");
-
-        var consumerConfig = new ConsumerConfig
+        public KafkaConsumerService(ILogger<KafkaConsumerService> logger, IConfiguration config)
         {
-            BootstrapServers = bootstrap,
-            GroupId = groupId,
-            AutoOffsetReset = AutoOffsetReset.Earliest,
-            EnableAutoCommit = true
-        };
+            _logger = logger;
+            _config = config;
 
-        _consumer = new ConsumerBuilder<string, string>(consumerConfig).Build();
-        _consumer.Subscribe(_topic);
-    }
+            var bootstrap = _config["Kafka:BootstrapServers"]
+                ?? throw new Exception("Kafka:BootstrapServers no configurado");
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        _logger.LogInformation("Kafka Consumer escuchando topic: {Topic}", _topic);
+            var groupId = _config["Kafka:GroupId"]
+                ?? throw new Exception("Kafka:GroupId no configurado");
 
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
+            // Nuevo topic final del proyecto
+            _topicFinalizacion = _config["Kafka:TopicReservaListadaParaFinalizacion"]
+                ?? throw new Exception("Kafka:TopicReservaListadaParaFinalizacion no configurado");
+
+            var consumerConfig = new ConsumerConfig
             {
-                var cr = _consumer.Consume(stoppingToken);
+                BootstrapServers = bootstrap,
+                GroupId = groupId,
+                AutoOffsetReset = AutoOffsetReset.Earliest,
+                EnableAutoCommit = true,
+            };
 
-                if (cr != null)
+            _consumer = new ConsumerBuilder<string, string>(consumerConfig).Build();
+            _consumer.Subscribe(_topicFinalizacion);
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("KafkaConsumerService iniciado. Escuchando topic: {Topic}", _topicFinalizacion);
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
                 {
+                    var cr = _consumer.Consume(stoppingToken);
+
+                    if (cr == null)
+                        continue;
+
                     _logger.LogInformation(
-                        "Mensaje recibido → Key: {Key}, Value: {Value}, Offset: {Offset}",
-                        cr.Message.Key, cr.Message.Value, cr.Offset
+                        "Mensaje recibido de {Topic} → Key: {Key}, Value: {Value}",
+                        _topicFinalizacion,
+                        cr.Message.Key,
+                        cr.Message.Value
                     );
 
-                    // Aquí procesas el mensaje real (guardar en DB, lógica, eventos…)
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // normal cuando se apaga la app
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error en KafkaConsumer");
-            }
+                    // 🟦 Deserializar el evento real
+                    var evento = JsonSerializer.Deserialize<EventoReservaListadaParaFinalizacion>(cr.Message.Value);
 
-            await Task.Delay(10, stoppingToken);
+                    if (evento == null)
+                    {
+                        _logger.LogWarning("No se pudo deserializar el evento recibido");
+                        continue;
+                    }
+
+                    // 🟧 Llamar a la lógica de dominio (lo conectarás después)
+                    await ProcesarEventoAsync(evento);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Se cancela correctamente al apagar la app
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error procesando mensaje de Kafka");
+                }
+
+                // Pequeño delay opcional para no saturar CPU
+                await Task.Delay(10, stoppingToken);
+            }
+        }
+
+        private Task ProcesarEventoAsync(EventoReservaListadaParaFinalizacion evento)
+        {
+            _logger.LogInformation("Procesando evento → ReservaId: {Id}", evento.ReservaId);
+
+
+
+            return Task.CompletedTask;
+        }
+
+        public override void Dispose()
+        {
+            _consumer.Close();
+            _consumer.Dispose();
+            base.Dispose();
         }
     }
 
-    public override void Dispose()
+    // Modelo del evento consumido desde Kafka
+    public class EventoReservaListadaParaFinalizacion
     {
-        _consumer?.Close();
-        _consumer?.Dispose();
-        base.Dispose();
+        public int ReservaId { get; set; }
+        public DateTime FechaLimite { get; set; }
+        public string EstadoActual { get; set; } = "";
     }
 }
+
