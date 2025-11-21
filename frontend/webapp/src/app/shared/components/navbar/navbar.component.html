@@ -1,0 +1,13 @@
+<header class="navbar">
+  <div class="brand">Reservas</div>
+
+  <nav>
+    <a routerLink="/">Inicio</a>
+    <a routerLink="/reservas">Reservas</a>
+  </nav>
+
+  <div class="actions">
+    <button *ngIf="!auth.isAuthenticated()" routerLink="/login" mat-button>Entrar</button>
+    <button *ngIf="auth.isAuthenticated()" (click)="logout()" mat-button>Cerrar sesión</button>
+  </div>
+</header>
