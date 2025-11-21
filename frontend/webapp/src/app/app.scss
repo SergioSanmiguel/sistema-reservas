@@ -1,0 +1,18 @@
+:root {
+  --primary: #3f51b5;
+  --accent: #ff4081;
+  --bg: #f5f7fb;
+}
+
+html, body, #root, app-root {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+}
+
+.app-container {
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
