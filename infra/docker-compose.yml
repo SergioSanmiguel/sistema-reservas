@@ -16,46 +16,46 @@
       timeout: 5s
       retries: 5
 
-  zookeeper:
-    image: bitnami/zookeeper:latest
-    container_name: reservas_zookeeper
-    environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-    ports:
-      - "2181:2181"
-    volumes:
-      - zookeeper_data:/bitnami
-    restart: unless-stopped
+  #  zookeeper:
+  #    image: bitnami/zookeeper:3.9.2-debian-12-r8
+  #    container_name: reservas_zookeeper
+  #    environment:
+  #      ALLOW_ANONYMOUS_LOGIN: "yes"
+  #    ports:
+  #      - "2181:2181"
+  #    volumes:
+  #      - zookeeper_data:/bitnami
+  #    restart: unless-stopped
 
-  kafka:
-    image: bitnami/kafka:latest
-    container_name: reservas_kafka
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      ALLOW_PLAINTEXT_LISTENER: "yes"
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-    ports:
-      - "9092:9092"
-    volumes:
-      - kafka_data:/bitnami
-    restart: unless-stopped
+  #  kafka:
+  #    image: bitnami/kafka:3.7.0-debian-12-r13
+  #    container_name: reservas_kafka
+  #    depends_on:
+  #      - zookeeper
+  #    environment:
+  #      KAFKA_BROKER_ID: 1
+  #      ALLOW_PLAINTEXT_LISTENER: "yes"
+  #      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+  #      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+  #    ports:
+  #      - "9092:9092"
+  #    volumes:
+  #      - kafka_data:/bitnami
+  #    restart: unless-stopped
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: reservas_kafka_ui
-    depends_on:
-      - kafka
-    ports:
-      - "7777:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-    restart: unless-stopped
+  #  kafka-ui:
+  #    image: provectuslabs/kafka-ui:latest
+  #    container_name: reservas_kafka_ui
+  #    depends_on:
+  #      - kafka
+  #    ports:
+  #      - "7777:8080"
+  #    environment:
+  #      KAFKA_CLUSTERS_0_NAME: local
+  #      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+  #      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+  #    restart: unless-stopped
 
   backend:
     build:
@@ -65,20 +65,21 @@
     depends_on:
       postgres:
         condition: service_healthy
-      kafka:
-        condition: service_started
+    #      kafka:
+    #        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__PostgresConnection: Host=postgres;Port=5432;Database=reservasdb;Username=reserva;Password=reserva123
-      Kafka__BootstrapServers: kafka:9092
+    #      Kafka__BootstrapServers: kafka:9092
     ports:
       - "5290:8080"
     restart: unless-stopped
 
 volumes:
   postgres_data:
-  kafka_data:
-  zookeeper_data:
+#  kafka_data:
+#  zookeeper_data:
+
 
 
 
