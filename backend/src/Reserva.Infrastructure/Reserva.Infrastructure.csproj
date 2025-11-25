@@ -13,5 +13,9 @@
   <PackageReference Include="Confluent.Kafka" Version="2.12.0" />
   <ProjectReference Include="..\Reserva.Core\Reserva.Core.csproj" />
 </ItemGroup>
+<!-- Excluir temporalmente la carpeta Kafka para poder compilar backend sin Kafka -->
+<ItemGroup>
+  <Compile Remove="Kafka\**\*.cs" />
+</ItemGroup>
 
 </Project>

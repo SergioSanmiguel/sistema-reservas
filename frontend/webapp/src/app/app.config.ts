@@ -3,7 +3,7 @@
   import { provideHttpClient, withInterceptors } from '@angular/common/http';
   import { provideAnimations } from '@angular/platform-browser/animations';
   import { routes } from './app.routes';
-  import { JwtInterceptor } from './core/auth/jwt.interceptor';
+  import { jwtInterceptor } from './core/auth/jwt.interceptor';
 
   export const appConfig: ApplicationConfig = {
     providers: [
@@ -11,7 +11,7 @@
       provideZoneChangeDetection({ eventCoalescing: true }),
       provideRouter(routes),
       provideAnimations(),
-      provideHttpClient(withInterceptors([JwtInterceptor])
+      provideHttpClient(withInterceptors([jwtInterceptor])
        ),
      ],
    };
