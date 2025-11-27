@@ -1,0 +1,28 @@
+<div class="contenedor">
+  <h2>Crear Reserva</h2>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <mat-form-field appearance="fill">
+      <mat-label>Espacio</mat-label>
+      <mat-select formControlName="espacioId">
+        <mat-option *ngFor="let e of espacios" [value]="e.id">
+          {{ e.nombre }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Fecha Inicio</mat-label>
+      <input matInput type="datetime-local" formControlName="fechaInicio">
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Fecha Fin</mat-label>
+      <input matInput type="datetime-local" formControlName="fechaFin">
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit">
+      Crear Reserva
+    </button>
+  </form>
+</div>
