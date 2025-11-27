@@ -6,15 +6,38 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/login/login.component').then(m => m.LoginComponent)
   },
-  // redirige al módulo de reservas
+
   {
-    path: '',
-    redirectTo: 'reservas',
-    pathMatch: 'full'
+    path: 'reservas',
+    canActivate: [() => import('./core/auth/auth.guard').then(m => m.authGuard)],
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/reservas/listar/reservas-listar.component')
+            .then(m => m.ReservasListarComponent)
+      },
+      {
+        path: 'crear',
+        loadComponent: () =>
+          import('./features/reservas/crear/reservas-crear.component')
+            .then(m => m.ReservasCrearComponent)
+      },
+      {
+        path: 'detalle/:id',
+        loadComponent: () =>
+          import('./features/reservas/detalle/reservas-detalle.component')
+            .then(m => m.ReservasDetalleComponent)
+      },
+      {
+        path: 'calendario/:espacioId',
+        loadComponent: () =>
+          import('./features/reservas/calendario/reservas-calendario.component')
+            .then(m => m.ReservasCalendarioComponent)
+      }
+    ]
   },
-  // fallback: redirigir a login si ruta desconocida
-  {
-    path: '**',
-    redirectTo: 'login'
-  }
+
+  { path: '', redirectTo: 'reservas', pathMatch: 'full' },
+  { path: '**', redirectTo: 'login' }
 ];
