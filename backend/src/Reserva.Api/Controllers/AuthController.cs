@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Reserva.Infrastructure.Data;
 using Reserva.Core.Models;
+using System.Security.Claims;
 
 namespace Reserva.Api.Controllers
 {
@@ -48,11 +49,11 @@ namespace Reserva.Api.Controllers
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new System.Security.Claims.ClaimsIdentity(new[]
+                Subject = new ClaimsIdentity(new[]
                 {
-                    new System.Security.Claims.Claim("id", user.Id.ToString()),
-                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, user.Email),
-                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, user.Rol)
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Role, user.Rol)
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(jwt.GetValue<int>("ExpireMinutes")),
                 Issuer = jwt.GetValue<string>("Issuer"),
